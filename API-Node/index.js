@@ -253,52 +253,95 @@ const aja = async() =>{
 server.listen(8080, async function(){
     //setTimeout(ver1,1000)
     //setTimeout(ver,1000)
+    // TIDIS
     const client = createClient({url:'redis://34.125.187.155:5379'});
     client.on('error', (err) => console.log('Redis Client Error', err));
     await client.connect();
-
-    setInterval(() => tidis(client),1000)
+    setInterval(() => tidis(client),3000)
     tidis(client)
+
+
+    // REDIS
+    const client2 = createClient({url:'redis://34.125.169.158:6379'});
+    client.on('error', (err) => console.log('Redis Client Error', err));
+    await client2.connect();
+    setInterval(() => tidis(client2),3000)
+    redis(client2)
     //ver();
     //ver1();
 });
 
 
 // TIDIS
-const tidis = async (client) => {
-        //while (true){
-
+const redis = async (client) => {
         const values = await client.lRange('listaJugadores', 0, -1)
         console.log(values)
-            var topTenGamesTidis = []
-            var playersTidis = []
+            var topTenGamesRedis = []
+            var playersRedis = []
 
             for(let i=0; i<values.length; i++){
             const myJson = await JSON.parse(values[i])
 
             if(myJson != null){
                 // GUARDO A LOS MEJORES JUGADORES
-                addElement(playersTidis,myJson.winner)
+                addElement(playersRedis,myJson.winner)
                 //GUARDO LOS ULTIMOS 10 JUEGOS
-                topTenGamesTidis.unshift(myJson)
+                topTenGamesRedis.unshift(myJson)
             }
-            // ENVIO LOS MEJORES JUGADORES EN TIEMPO REAL
-            socketBestPlayersT(playersTidis)
 
             // OBTENGO LOS ULTIMOS 10
-            while(topTenGamesTidis.length > 10){
-                topTenGamesTidis.pop()
+            while(topTenGamesRedis.length > 10){
+                topTenGamesRedis.pop()
             }
-            socketMostPlayedT(topTenGamesTidis);
-            var allPlayersT = []
+            var allPlayersR = []
 
             if(myJson != undefined){
                 for(let i=1; i<myJson.players+1; i++){
-                    allPlayersT.push({"name":"Jugador"+i,"state":"Jugador"+i==myJson.winner?"Ganador":"Perdedor","game":myJson.game_n})
+                    allPlayersR.push({"name":"Jugador"+i,"state":"Jugador"+i==myJson.winner?"Ganador":"Perdedor","game":myJson.game_n})
                 }
             }
             // ENVIO AL SOCKET
-            socketAllPlayersT(allPlayersT)
-        //}
+            socketBestPlayersR(playersRedis)
+            socketMostPlayedR(topTenGamesRedis);
+            socketAllPlayersR(allPlayersR)
     }
+};
+
+
+
+
+
+// TIDIS
+const tidis = async (client) => {
+    const values = await client.lRange('listaJugadores', 0, -1)
+    console.log(values)
+        var topTenGamesTidis = []
+        var playersTidis = []
+
+        for(let i=0; i<values.length; i++){
+        const myJson = await JSON.parse(values[i])
+
+        if(myJson != null){
+            // GUARDO A LOS MEJORES JUGADORES
+            addElement(playersTidis,myJson.winner)
+            //GUARDO LOS ULTIMOS 10 JUEGOS
+            topTenGamesTidis.unshift(myJson)
+        }
+
+        // OBTENGO LOS ULTIMOS 10
+        while(topTenGamesTidis.length > 10){
+            topTenGamesTidis.pop()
+        }
+        var allPlayersT = []
+
+        if(myJson != undefined){
+            for(let i=1; i<myJson.players+1; i++){
+                allPlayersT.push({"name":"Jugador"+i,"state":"Jugador"+i==myJson.winner?"Ganador":"Perdedor","game":myJson.game_n})
+            }
+        }
+        // ENVIO AL SOCKET
+        socketBestPlayersT(playersTidis)
+        socketMostPlayedT(topTenGamesTidis);
+        socketAllPlayersT(allPlayersT)
+}
 };
